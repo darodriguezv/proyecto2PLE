@@ -107,6 +107,16 @@ public value evalBinary(Expression l, str op, Expression r, Env env) {
     case "*": return toInt(lv) * toInt(rv);
     case "/": return toReal(lv) / toReal(rv);
     case "%": return toInt(lv) % toInt(rv);
+    case "**": {
+      int base = toInt(lv);
+      int exp = toInt(rv);
+      if (exp == 0) return 1;
+      int result = 1;
+      for (_ <- [0..exp]) {
+        result = result * base;
+      }
+      return result;
+    }
     case "\<": return toInt(lv) < toInt(rv);
     case "\>": return toInt(lv) > toInt(rv);
     case "\<=": return toInt(lv) <= toInt(rv);

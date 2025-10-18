@@ -12,9 +12,9 @@ syntax Module
 // Abstracciones de datos
 
 syntax DataAbstraction =
-  dataAbstractionDef: "data" Id "with" IdList
-                      ("rep" "struct" "(" FieldList? ")")?
-                      "end" Id ;
+  dataAbstraction: "data" Id name "with" IdList ids
+                   ("rep" "struct" "(" FieldList? fields ")")?
+                   "end" Id ;
 
 syntax IdList = idList: Id ("," Id)* ;
 
@@ -32,20 +32,15 @@ syntax ParameterList = parameterList: Id ("," Id)* ;
 // Sentencias
 
 syntax Statement
-  = assignment: Id "=" Expression
-  | multiAssign: IdList ":=" ExpressionList
-  | funcCallStmt: FunctionCall
-  | conditionalStmt: ConditionalStmt
-  | loopStmt: LoopStmt
+  = assignStmt: Id varName "=" Expression val
+  | funcCallStmt: FunctionCall call
+  | conditionalStmt: ConditionalStmt ifs
+  | loopStmt: LoopStmt loop
   ;
-
-syntax ExpressionList = expressionList: Expression ("," Expression)* ;
 
 // Llamadas a funciones
 
-syntax FunctionCall = functionCall: Id ArgumentList ;
-
-syntax ArgumentList = argumentList: "(" (Expression ("," Expression)*)? ")" ;
+syntax FunctionCall = funcCall: Id name "(" {Expression ","}* args ")" ;
 
 // Construcción de datos
 
@@ -53,12 +48,11 @@ syntax DataConstruction
   = dataConstruction: ConstructorCall ;
 
 syntax ConstructorCall =
-  constructorCall: "sequence" "[" (Expression ("," Expression)*)? "]"
-                 | "tuple" "(" (Expression ("," Expression)*)? ")"
-                 | "struct" "(" NamedArgList? ")" ;
+  ctorCall: "sequence" "[" {Expression ","}* "]"
+  | ctorCall: "tuple" "(" {Expression ","}* ")"
+  | ctorCall: "struct" "(" {NamedArg ","}* args ")" ;
 
-syntax NamedArgList = namedArgList: NamedArg ("," NamedArg)* ;
-syntax NamedArg = namedArg: Id ":" Expression ;
+syntax NamedArg = namedArg: Id name ":" Expression expr ;
 
 // Condicionales
 
@@ -68,21 +62,21 @@ syntax ConditionalStmt
   ;
 
 syntax IfStmt =
-  ifStmt: "if" Expression "then" Statement*
-          ("elseif" Expression "then" Statement*)*
-          ("else" Statement*)?
+  ifStmt: "if" Expression cond "then" Statement* thenBlock
+          ("elseif" Expression "then" Statement*)*  elseifBlocks
+          ("else" Statement* elseBlock)?
           "end" ;
 
 syntax CondStmt =
-  condStmt: "cond" Expression "do" CondClause+ "end" ;
+  condStmt: "cond" Expression cond "do" CondClause+ clauses "end" ;
 
-syntax CondClause = condClause: Expression "-\>" Statement+ ;
+syntax CondClause = condClause: Expression cond "-\>" Statement+ body ;
 
 // Bucles
 
 syntax LoopStmt =
-    forRange: "for" Id "from" Expression "to" Expression "do" Statement* "end"
-  | forIn: "for" Id "in" Expression "do" Statement* "end"
+    forRange: "for" Id var "from" Expression fromExpr "to" Expression toExpr "do" Statement* body "end"
+  | forIn: "for" Id var "in" Expression expr "do" Statement* body "end"
   ;
 
 // Jerarquía de expresiones
@@ -91,74 +85,73 @@ syntax Expression = OrExpr ;
 
 syntax OrExpr
   = AndExpr
-  | left orExpr: OrExpr "or" AndExpr
+  | left binaryExpr: OrExpr left "or" op AndExpr right
   ;
 
 syntax AndExpr
   = CmpExpr
-  | left andExpr: AndExpr "and" CmpExpr
+  | left binaryExpr: AndExpr left "and" op CmpExpr right
   ;
 
 syntax CmpExpr
   = AddExpr
-  | non-assoc cmpExpr: AddExpr CmpOp AddExpr
+  | non-assoc binaryExpr: AddExpr left CmpOp op AddExpr right
   ;
 
 lexical CmpOp = [\<] | [\>] | "\<=" | "\>=" | "\<\>" | "=" ;
 
 syntax AddExpr
   = MulExpr
-  | left addExpr: AddExpr ("+" | "-") MulExpr
+  | left binaryExpr: AddExpr left ("+" | "-") op MulExpr right
   ;
 
 syntax MulExpr
   = PowExpr
-  | left mulExpr: MulExpr ("*" | "/" | "%") PowExpr
+  | left binaryExpr: MulExpr left ("*" | "/" | "%") op PowExpr right
   ;
 
 syntax PowExpr
   = UnaryExpr
-  | right powExpr: UnaryExpr "**" PowExpr
+  | right binaryExpr: UnaryExpr left "**" op PowExpr right
   ;
 
 syntax UnaryExpr
   = Postfix
-  | unaryNeg: "neg" UnaryExpr
-  | unaryMinus: "-" UnaryExpr
+  | unaryExpr: "neg" op UnaryExpr expr
+  | unaryExpr: "-" op UnaryExpr expr
   ;
 
 // Postfix y expresiones primarias
 
 syntax Postfix
   = Primary
-  | left postfixCall: Postfix ArgumentList
-  | left postfixMember: Postfix "." Id
+  | left callExpr: Postfix "(" {Expression ","}* args ")"
   ;
 
 syntax Primary
-  = bracket bracketExpr: "(" Expression ")"
-  | primaryLiteral: Literal
-  | primaryId: Id
-  | primaryConstructor: ConstructorCall
+  = bracket groupExpr: "(" Expression expr ")"
+  | literalExpr: Literal lit
+  | varExpr: Id name
+  | ctorExpr: ConstructorCall ctor
   ;
 
 // Literales
 
 syntax Literal
-  = numberLit: Number
-  | boolLit: Boolean
-  | charLit: Char
-  | stringLit: String
+  = floatLit: Float realValue
+  | intLit: Integer intValue
+  | boolLit: Boolean boolValue
+  | charLit: Char charValue
+  | stringLit: String strValue
   ;
 
 // Tokens léxicos
 
 lexical Id = [a-zA-Z_][a-zA-Z0-9_\-]* \ Reserved ;
 
-lexical Number
-  = [0-9]+ "." [0-9]+
-  | [0-9]+
-  ;
+lexical Float = [0-9]+ "." [0-9]+ ;
+
+lexical Integer = [0-9]+ ;
 
 lexical Boolean = "true" | "false" ;
 
