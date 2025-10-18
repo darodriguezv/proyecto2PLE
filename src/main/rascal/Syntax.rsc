@@ -130,9 +130,9 @@ syntax Postfix
 
 syntax Primary
   = bracket groupExpr: "(" Expression expr ")"
-  | literalExpr: Literal lit
-  | varExpr: Id name
+  | @prefer literalExpr: Literal lit
   | ctorExpr: ConstructorCall ctor
+  | varExpr: Id name
   ;
 
 // Literales
@@ -140,7 +140,8 @@ syntax Primary
 syntax Literal
   = floatLit: Float realValue
   | intLit: Integer intValue
-  | boolLit: Boolean boolValue
+  | boolLit: "true" 
+  | boolLit: "false"
   | charLit: Char charValue
   | stringLit: String strValue
   ;
@@ -152,8 +153,6 @@ lexical Id = [a-zA-Z_][a-zA-Z0-9_\-]* \ Reserved ;
 lexical Float = [0-9]+ "." [0-9]+ ;
 
 lexical Integer = [0-9]+ ;
-
-lexical Boolean = "true" | "false" ;
 
 lexical Char = [\'] CharContent [\'] ;
 lexical CharContent

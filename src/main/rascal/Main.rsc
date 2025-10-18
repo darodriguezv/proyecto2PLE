@@ -1,10 +1,9 @@
 module Main
 
 import IO;
-import Parser;
-import Implode;
-import Interpreter;
-import AST;
+import Syntax;
+import ParseTree;
+import Evaluator;
 import String;
 
 void main() {
@@ -58,13 +57,19 @@ void main() {
 
 void runProgram(str code) {
     try {
-        println("Parsing...");
-        Program ast = implodeProgram(trim(code));
-        println("Executing...");
-        evalProgram(ast);
+        // Parse the code directly to a concrete syntax tree
+        Program prog = parse(#Program, trim(code));
+        
+        // Evaluate the parse tree directly (no AST conversion!)
+        evalProgram(prog);
+        
         println("Done!");
     } catch ParseError(loc l): {
         println("Parse Error at <l>");
+    } catch Ambiguity(loc l, str prod, str sentence): {
+        println("Ambiguity Error at <l>");
+        println("Production: <prod>");
+        println("Sentence: <sentence>");
     } catch err: {
         println("Error: <err>");
     }
