@@ -3,29 +3,13 @@ module Main
 import IO;
 import Syntax;
 import ParseTree;
-import Evaluator;
+import AST;
+import Interpreter;
 import String;
 
 void main() {
-  println("=== ALU Language Demo ===\n");
-
-  runExample("Example 1: Arithmetic and Comparison",
-    "function calculate() do x = 10 y = 20 z = x + y * 2 result = z > 30 end calculate");
-
-  runExample("Example 2: For Range Loop",
-    "function countdown() do for i from 1 to 5 do sum = i * 2 end end countdown");
-
-  runExample("Example 3: If Statement with Comparison",
-    "function checkValue() do x = 15 if x > 10 then y = 100 else y = 0 end end checkValue");
-
-  runExample("Example 4: Boolean Logic",
-    "function logic() do a = true b = false c = a and b d = a or b end logic");
-
-  runExample("Example 5: Power and Negation",
-    "function power() do base = 2 exp = 3 result = base ** exp negative = neg result end power");
-
   println("=== Running external file: test1.alu ===\n");
-  runFile(|project://proyecto2ple/instance/test1.alu|);
+  runFile(|project://proyecto2/instance/test1.alu|);
 }
 
 void runExample(str title, str code) {
@@ -39,7 +23,9 @@ void runExample(str title, str code) {
 void runProgram(str code) {
   try {
     println("Parsing...");
-    Program ast = implodeProgram(trim(code));
+    pt = parse(#start[Program], trim(code));
+    println("Imploding to AST...");
+    AST::Program ast = implode(#AST::Program, pt.top);
     println("Executing...");
     evalProgram(ast);
     println("Done!");
@@ -55,8 +41,8 @@ void runFile(loc file) {
     println("Reading file: <file>"); 
     str code = readFile(file);
     runProgram(code);
-  } catch FileNotFound(): {
-    println("File not found: <file>"); 
+  } catch IO(str msg): {
+    println("File error: <msg>"); 
   } catch err: {
     println("Error reading file: <err>"); 
   }

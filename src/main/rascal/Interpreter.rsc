@@ -3,7 +3,7 @@ module Interpreter
 import AST; 
 import IO;
 import Map;
-
+import util::Math;
 
 alias Env = map[str, value];
 
@@ -22,11 +22,11 @@ public void evalModule(Module m, Env env) {
 }
 
 public void evalFunction(FunctionDef f, Env env) {
-  println("Executing function ...");
+  println("Executing function: <f.name>");
   for (s <- f.body) {
     env = evalStatement(s, env);
   }
-  println("End of function ");
+  println("End of function: <f.name>");
 }
 
 //Evaluación de Sentencias
@@ -36,11 +36,11 @@ public Env evalStatement(Statement s, Env env) {
     case assignStmt(varName, val): { // Asignación
       value v = evalExpression(val, env);
       env += (varName: v);
-      println("Assigned = ");
+      println("  <varName> = <v>");
       return env;
     }
     
-    case conditionalStmt(i): return evalIf(i, env); // Condicional If
+    case conditionalStmt(i): return evalConditional(i, env); // Condicional If
     case loopStmt(l): return evalLoop(l, env); // Bucles
     
     case funcCallStmt(call): { // Llamada a función como sentencia
@@ -48,21 +48,22 @@ public Env evalStatement(Statement s, Env env) {
       return env;
     }
     
-    case dataConstructionStmt(dataCtor): { // Construcción de datos
-      println("Data construction not yet implemented: ");
-      return env;
-    }
-    
-    case condStmt(cond): { 
-      println("Cond statement not yet implemented."); 
-      return env;
-    }
-    
     default: {
-      println("Statement not implemented: ");
+      println("Statement not implemented: <s>");
       return env;
     }
   }
+}
+
+public Env evalConditional(ConditionalStmt c, Env env) {
+  switch (c) {
+    case ifStmt(i): return evalIf(i, env);
+    case condStmt(_): {
+      println("Cond statement not yet implemented.");
+      return env;
+    }
+  }
+  return env;
 }
 
 public Env evalIf(IfStmt i, Env env) {
@@ -119,78 +120,143 @@ public Env evalBlock(list[Statement] body, Env env) {
 
 public value evalExpression(Expression e, Env env) {
   switch (e) {
-    case literalExpr(l): return evalLiteral(l);
-    case varExpr(n): return env[n] ? "undefined"; 
-    case binaryExpr(l, op, r): return evalBinary(l, op, r, env);
-    case unaryExpr(op, ex): return evalUnary(op, ex, env);
-    case groupExpr(g): return evalExpression(g, env);
-    case callExpr(call): return evalFunctionCall(call, env);
-    case ctorExpr(ctor): return evalConstructorCall(ctor, env);
-    default: return "unsupported expression";
+    case orExpr(oe): return evalOrExpr(oe, env);
   }
+  return 0;
 }
 
-public value evalFunctionCall(FunctionCall call, Env env) {
-  println("Function call not implemented: ()");
-  return "call";
+public value evalOrExpr(OrExpr e, Env env) {
+  switch (e) {
+    case binaryOr(left, right): 
+      return toBool(evalOrExpr(left, env)) || toBool(evalAndExpr(right, env));
+    case andExpr(ae):
+      return evalAndExpr(ae, env);
+  }
+  return 0;
 }
 
-public value evalConstructorCall(ConstructorCall ctor, Env env) {
-  println("Constructor call not implemented: ()");
-  return "ctor";
+public value evalAndExpr(AndExpr e, Env env) {
+  switch (e) {
+    case binaryAnd(left, right):
+      return toBool(evalAndExpr(left, env)) && toBool(evalCmpExpr(right, env));
+    case cmpExpr(ce):
+      return evalCmpExpr(ce, env);
+  }
+  return 0;
 }
 
-//Operaciones Binarias
-
-public value evalBinary(Expression l, str op, Expression r, Env env) {
-  value lv = evalExpression(l, env);
-  value rv = evalExpression(r, env);
-
-  switch (op) {
-    // Operadores Aritméticos
-    case "+": return toInt(lv) + toInt(rv);
-    case "-": return toInt(lv) - toInt(rv);
-    case "*": return toInt(lv) * toInt(rv);
-    case "/": return toReal(lv) / toReal(rv);
-    case "%": return toInt(lv) % toInt(rv);
-    
-    case "**": { // Potencia
-      int base = toInt(lv);
-      int exp = toInt(rv);
-      if (exp == 0) return 1;
-      int result = 1;
-      for (_ <- [1..exp]) {
-        result = result * base;
+public value evalCmpExpr(CmpExpr e, Env env) {
+  switch (e) {
+    case binaryExpr(left, op, right): {
+      value lv = evalAddExpr(left, env);
+      value rv = evalAddExpr(right, env);
+      switch (op) {
+        case "\<": return toNum(lv) < toNum(rv);
+        case "\>": return toNum(lv) > toNum(rv);
+        case "\<=": return toNum(lv) <= toNum(rv);
+        case "\>=": return toNum(lv) >= toNum(rv);
+        case "=": return lv == rv;
+        case "\<\>": return lv != rv;
+        default: return false;
       }
-      return result;
     }
-    
-    // Operadores de Comparación 
-    case "\<": return toInt(lv) < toInt(rv);
-    case "\>": return toInt(lv) > toInt(rv);
-    case "\<=": return toInt(lv) <= toInt(rv);
-    case "\>=": return toInt(lv) >= toInt(rv);
-    case "=": return lv == rv;
-    case "\<\>": return lv != rv;
-    
-    // Operadores Lógicos
-    case "and": return toBool(lv) && toBool(rv);
-    case "or": return toBool(lv) || toBool(rv);
-    
-    default: return "unsupported op";
+    case addExpr(ae):
+      return evalAddExpr(ae, env);
   }
+  return 0;
 }
 
-//Operaciones Unarias
-
-public value evalUnary(str op, Expression e, Env env) {
-  value v = evalExpression(e, env);
-
-  switch (op) {
-    case "neg": return -toInt(v); 
-    case "-": return -toInt(v);
-    default: return v;
+public value evalAddExpr(AddExpr e, Env env) {
+  switch (e) {
+    case binaryAdd(left, op, right): {
+      value lv = evalAddExpr(left, env);
+      value rv = evalMulExpr(right, env);
+      switch (op) {
+        case "+": return toNum(lv) + toNum(rv);
+        case "-": return toNum(lv) - toNum(rv);
+        default: return 0;
+      }
+    }
+    case mulExpr(me):
+      return evalMulExpr(me, env);
   }
+  return 0;
+}
+
+public value evalMulExpr(MulExpr e, Env env) {
+  switch (e) {
+    case binaryMul(left, op, right): {
+      value lv = evalMulExpr(left, env);
+      value rv = evalPowExpr(right, env);
+      switch (op) {
+        case "*": return toNum(lv) * toNum(rv);
+        case "/": return toNum(lv) / toNum(rv);
+        case "%": return asInt(lv) % asInt(rv);
+        default: return 0;
+      }
+    }
+    case powExpr(pe):
+      return evalPowExpr(pe, env);
+  }
+  return 0;
+}
+
+public value evalPowExpr(PowExpr e, Env env) {
+  switch (e) {
+    case binaryPow(left, right): {
+      int base = asInt(evalUnaryExpr(left, env));
+      int exp = asInt(evalPowExpr(right, env));
+      return pow(base, exp);
+    }
+    case unaryExpr(ue):
+      return evalUnaryExpr(ue, env);
+  }
+  return 0;
+}
+
+public value evalUnaryExpr(UnaryExpr e, Env env) {
+  switch (e) {
+    case unaryNeg(operand):
+      return !toBool(evalUnaryExpr(operand, env));
+    case unaryMinus(operand):
+      return -toNum(evalUnaryExpr(operand, env));
+    case postfix(postfixExpr):
+      return evalPostfix(postfixExpr, env);
+  }
+  return 0;
+}
+
+public value evalPostfix(Postfix e, Env env) {
+  switch (e) {
+    case postfixCall(_, _): {
+      println("Function call not yet implemented");
+      return 0;
+    }
+    case primary(primaryExpr):
+      return evalPrimary(primaryExpr, env);
+  }
+  return 0;
+}
+
+public value evalPrimary(Primary e, Env env) {
+  switch (e) {
+    case literalExpr(lit):
+      return evalLiteral(lit);
+    case varExpr(name):
+      return (name in env) ? env[name] : 0;
+    case groupExpr(expr):
+      return evalExpression(expr, env);
+    case ctorExpr(_): {
+      println("Constructor call not yet implemented");
+      return 0;
+    }
+  }
+  return 0;
+}
+
+public value evalFunctionCall(FunctionCall _call, Env _env) {
+  println("Function call not implemented: ()");
+  return 0;
 }
 
 //Evaluación de Literales
@@ -199,7 +265,7 @@ public value evalLiteral(Literal l) {
   switch (l) {
     case intLit(intValue): return intValue;
     case floatLit(realValue): return realValue;
-    case boolLit(boolValue): return boolValue;
+    case boolLit(boolValue): return boolValue == "true";
     case charLit(charValue): return charValue;
     case stringLit(strValue): return strValue;
   }
@@ -209,18 +275,22 @@ public value evalLiteral(Literal l) {
 //Utilidades de Conversión de Tipos
 
 public bool toBool(value v) {
-  if (v == true) return true;
-  if (v == false) return false;
-  return v != 0;
+  if (bool b := v) return b;
+  if (int i := v) return i != 0;
+  if (real r := v) return r != 0.0;
+  return false;
 }
 
-public int toInt(value v) {
-  if (int n := v) return n;
+public num toNum(value v) {
+  if (int i := v) return i;
+  if (real r := v) return r;
+  if (bool b := v) return b ? 1 : 0;
   return 0;
 }
 
-public real toReal(value v) {
-  if (real r := v) return r;
-  if (int n := v) return n * 1.0;
-  return 0.0;
+public int asInt(value v) {
+  if (int i := v) return i;
+  if (real r := v) return toInt(r);
+  if (bool b := v) return b ? 1 : 0;
+  return 0;
 }

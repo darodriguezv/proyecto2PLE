@@ -1,7 +1,7 @@
 module Syntax
 
 // Programa y módulos
-start syntax Program = Module+ ; 
+start syntax Program = program: Module+ modules ; 
 
 syntax Module
 = dataDef: DataAbstraction
@@ -10,19 +10,19 @@ syntax Module
 
 // Abstracciones de datos
 syntax DataAbstraction =
-dataAbstraction: "data" Id name "with" IdList ids
-("rep" "struct" "(" FieldList? fields ")")?
-"end" Id ; 
+dataAbstraction: "data" Id name "with" {Id ","}+ ids
+("rep" "struct" "(" {Id ","}* fields ")")?
+"end" Id endName ; 
 
-syntax IdList = idList: Id ("," Id)* ; 
+syntax IdList = Id+ ids ; 
 
-syntax FieldList = fieldList: Id ("," Id)* ; 
+syntax FieldList = Id+ fields ; 
 
 // Funciones
 syntax FunctionDef =
-functionDef: "function" Id "(" ParameterList? ")"
-"do" Statement*
-"end" Id ; 
+functionDef: "function" Id name "(" {Id ","}* params ")"
+"do" Statement* body
+"end" Id endName ; 
 
 syntax ParameterList = parameterList: Id ("," Id)* ; 
 
@@ -73,64 +73,68 @@ forRange: "for" Id var "from" Expression fromExpr "to" Expression toExpr "do" St
 ; 
 
 // Jerarquía de expresiones 
-syntax Expression = OrExpr ; 
+syntax Expression = orExpr: OrExpr expr ; 
 
 // Lógica booleana OR 
 syntax OrExpr
-= AndExpr
-| left binaryExpr: OrExpr left "or" op AndExpr right
+= andExpr: AndExpr expr
+| left binaryOr: OrExpr left "or" AndExpr right
 ; 
 
 // Lógica booleana AND 
 syntax AndExpr
-= CmpExpr
-| left binaryExpr: AndExpr left "and" op CmpExpr right
+= cmpExpr: CmpExpr expr
+| left binaryAnd: AndExpr left "and" CmpExpr right
 ; 
 
 // Comparación 
 syntax CmpExpr
-= AddExpr
+= addExpr: AddExpr expr
 | non-assoc binaryExpr: AddExpr left CmpOp op AddExpr right
 ; 
 
-lexical CmpOp = [\<] | [\>] | "\<=" | "\>=" | "\<\>" | "=" ; 
+lexical CmpOp = "\<" | "\>" | "\<=" | "\>=" | "\<\>" | "=" ; 
 
 // Suma/Resta 
 syntax AddExpr
-= MulExpr
-| left binaryExpr: AddExpr left ("+" | "-") op MulExpr right
+= mulExpr: MulExpr expr
+| left binaryAdd: AddExpr left AddOp op MulExpr right
 ; 
+
+lexical AddOp = "+" | "-" ;
 
 // Multiplicación/División/Módulo 
 syntax MulExpr
-= PowExpr
-| left binaryExpr: MulExpr left ("*" | "/" | "%") op PowExpr right
+= powExpr: PowExpr expr
+| left binaryMul: MulExpr left MulOp op PowExpr right
 ; 
+
+lexical MulOp = "*" | "/" | "%" ;
 
 // Potencia 
 syntax PowExpr
-= UnaryExpr
-| right binaryExpr: UnaryExpr left "**" op PowExpr right
+= unaryExpr: UnaryExpr expr
+| right binaryPow: UnaryExpr left "**" PowExpr right
 ; 
 
 // Expresiones unarias
 syntax UnaryExpr
-= Postfix
-| unaryExpr: "neg" op UnaryExpr expr
-| unaryExpr: "-" op UnaryExpr expr
+= postfix: Postfix postfixExpr
+| unaryNeg: "neg" UnaryExpr operand
+| unaryMinus: "-" UnaryExpr operand
 ; 
 
 // Postfix 
 syntax Postfix
-= Primary
-| left callExpr: Postfix "(" {Expression ","}* args ")" 
+= primary: Primary primaryExpr
+| left postfixCall: Postfix callee "(" {Expression ","}* args ")" 
 ; 
 
 // Expresiones primarias 
 syntax Primary
 = bracket groupExpr: "(" Expression expr ")" 
-| literalExpr: Literal lit 
-| varExpr: Id name 
+> literalExpr: Literal lit 
+> varExpr: Id name 
 | ctorExpr: ConstructorCall ctor 
 ; 
 
@@ -138,22 +142,25 @@ syntax Primary
 syntax Literal
   = floatLit: Float realValue
   | intLit: Integer intValue
-  | boolLit: Boolean boolValue
+  > boolLit: BooleanLit boolValue
   | charLit: Char charValue
   | stringLit: String strValue
   ;
 
 // Tokens Léxicos
 
-// Identificadores 
-lexical Id = [a-zA-Z_][a-zA-Z0-9_\-]* \ Reserved ; 
+// Boolean literals
+lexical BooleanLit = "true" | "false" ;
+
+// Identificadores (excludes reserved words including boolean literals)
+lexical Id = [a-zA-Z_][a-zA-Z0-9_\-]* \ Reserved 
+           \ "true"
+           \ "false" ; 
 
 // Números
 lexical Float = [0-9]+ "." [0-9]+ ;
 
 lexical Integer = [0-9]+ ;
-
-lexical Boolean = "true" | "false" ;
 
 // Caracteres
 lexical Char = [\'] CharContent [\'] ; 

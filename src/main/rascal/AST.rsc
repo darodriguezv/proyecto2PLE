@@ -9,49 +9,86 @@ data Module
 data DataAbstraction = dataAbstraction(
   str name,
   list[str] ids,
-  list[str] fields
+  list[str] fields,
+  str endName
 );
 
 data FunctionDef = functionDef(
   str name,
   list[str] params,
-  list[Statement] body
+  list[Statement] body,
+  str endName
 );
 
 data Literal
   = intLit(int intValue)
   | floatLit(real realValue)
-  | boolLit(bool boolValue)
+  | boolLit(str boolValue)
   | charLit(str charValue)
   | stringLit(str strValue)
   ;
 
-data Expression
-  = binaryExpr(Expression left, str op, Expression right)
-  | unaryExpr(str op, Expression expr)
-  | literalExpr(Literal lit)
+// Expression hierarchy matching grammar
+data Expression = orExpr(OrExpr expr);
+
+data OrExpr
+  = binaryOr(OrExpr left, AndExpr right)
+  | andExpr(AndExpr expr);
+
+data AndExpr
+  = binaryAnd(AndExpr left, CmpExpr right)
+  | cmpExpr(CmpExpr expr);
+
+data CmpExpr
+  = binaryExpr(AddExpr left, str op, AddExpr right)
+  | addExpr(AddExpr expr);
+
+data AddExpr
+  = binaryAdd(AddExpr left, str op, MulExpr right)
+  | mulExpr(MulExpr expr);
+
+data MulExpr
+  = binaryMul(MulExpr left, str op, PowExpr right)
+  | powExpr(PowExpr expr);
+
+data PowExpr
+  = binaryPow(UnaryExpr left, PowExpr right)
+  | unaryExpr(UnaryExpr expr);
+
+data UnaryExpr
+  = unaryNeg(UnaryExpr operand)
+  | unaryMinus(UnaryExpr operand)
+  | postfix(Postfix postfixExpr);
+
+data Postfix
+  = postfixCall(Postfix callee, list[Expression] args)
+  | primary(Primary primaryExpr);
+
+data Primary
+  = literalExpr(Literal lit)
   | varExpr(str name)
-  | callExpr(FunctionCall call)
-  | ctorExpr(ConstructorCall ctor)
   | groupExpr(Expression expr)
-  ;
+  | ctorExpr(ConstructorCall ctor);
 
 data FunctionCall = funcCall(
   str name,
   list[Expression] args
 );
 
-data ConstructorCall = ctorCall(
-  str name,
-  list[NamedArg] args
-);
+data ConstructorCall 
+  = ctorCall(list[Expression] args)
+  ;
 
 data NamedArg = namedArg(str name, Expression expr);
 
 data DataConstruction = dataConstruction(
-  str name,
-  list[NamedArg] args
+  ConstructorCall ctor
 );
+
+data ConditionalStmt
+  = ifStmt(IfStmt ifs)
+  | condStmt(CondStmt cond)
+  ;
 
 data IfStmt = ifStmt(
   Expression cond,
@@ -74,11 +111,9 @@ data LoopStmt
   = forRange(str var, Expression fromExpr, Expression toExpr, list[Statement] body)
   | forIn(str var, Expression expr, list[Statement] body);
 
-data Statement =
-    assignStmt(str varName, Expression val)
+data Statement 
+  = assignStmt(str varName, Expression val)
   | funcCallStmt(FunctionCall call)
-  | conditionalStmt(IfStmt ifs)
-  | condStmt(CondStmt cond)
+  | conditionalStmt(ConditionalStmt ifs)
   | loopStmt(LoopStmt loop)
-  | dataConstructionStmt(DataConstruction dataCtor)
   ;
