@@ -1,0 +1,10 @@
+function demo() do
+  x = 5
+  y = 10
+  z = x + y * 2
+  if z > 20 then
+    result = true
+  else
+    result = false
+  end
+end demo

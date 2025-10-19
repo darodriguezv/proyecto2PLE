@@ -4,7 +4,6 @@ import ParseTree;
 import Syntax;
 import IO;
 
-
 public Tree parseALU(str src, loc origin) {
   return parse(#start[Program], src, origin);
 }
