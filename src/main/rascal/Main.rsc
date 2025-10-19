@@ -6,6 +6,7 @@ import ParseTree;
 import AST;
 import Interpreter;
 import String;
+import ParseTree;
 
 void main() {
   println("=== Running external file: test1.alu ===\n");
@@ -20,10 +21,19 @@ void runExample(str title, str code) {
   println("\n---\n");
 }
 
+Tree resolveAmb(Tree t) {
+  return bottom-up visit(t) {
+    case a:amb({Tree first, *Tree rest}) => first
+  };
+}
+
 void runProgram(str code) {
   try {
     println("Parsing...");
-    pt = parse(#start[Program], trim(code));
+    pt = parse(#start[Program], trim(code), allowAmbiguity=true);
+    println("Resolving ambiguities...");
+    // Prefer literalExpr over varExpr for boolean literals
+    pt = resolveAmb(pt);
     println("Imploding to AST...");
     AST::Program ast = implode(#AST::Program, pt.top);
     println("Executing...");
