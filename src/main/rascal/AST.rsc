@@ -4,7 +4,8 @@ data Program = program(list[Module] modules);
 
 data Module
   = dataDef(DataAbstraction dataAbs)
-  | funcDef(FunctionDef func);
+  | funcDef(FunctionDef func)
+  | dataDecl(DataDecl decl);
 
 data DataAbstraction = dataAbstraction(
   str name,
@@ -67,7 +68,8 @@ data Primary
   = literalExpr(Literal lit)
   | varExpr(str name)
   | groupExpr(Expression expr)
-  | ctorExpr(ConstructorCall ctor);
+  | ctorExpr(ConstructorCall ctor)
+  | invExpr(Invocation inv);
 
 data FunctionCall = funcCall(
   str name,
@@ -115,4 +117,35 @@ data Statement
   | funcCallStmt(FunctionCall call)
   | conditionalStmt(ConditionalStmt ifs)
   | loopStmt(LoopStmt loop)
+  // Invocation as a statement
+  | invokeStmt(Invocation inv)
+  // Iterator declaration statement: x = iterator (a, b) yielding (c, d)
+  | iteratorStmt(str varName, list[str] inVars, list[str] outVars)
+  // Range statements: with and without assignment
+  | rangeStmtWithVar(str varName, Principal fromP, Principal toP)
+  | rangeStmtBare(Principal fromP, Principal toP)
   ;
+
+// Invocation forms
+data Invocation
+  = dollarInvoke(str name, list[str] vars)
+  | methodInvoke(str recv, str method, list[str] vars)
+  ;
+
+// Principal values (subset of Primary used in Range, etc.)
+data Principal
+  = pTrue()
+  | pFalse()
+  | pChar(str charValue)
+  | pInt(int intValue)
+  | pFloat(real realValue)
+  | pId(str name)
+  ;
+
+// Data declarations per spec (constructor-only body for now)
+data DataDecl
+  = dataCtorNoAssign(list[str] vars, ConstructorDef cons, str endName)
+  | dataCtorWithAssign(str assignName, list[str] vars, ConstructorDef cons, str endName)
+  ;
+
+data ConstructorDef = constructorDef(str name, list[str] vars);

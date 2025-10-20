@@ -51,12 +51,47 @@ public Env evalStatement(Statement s, Env env) {
       evalFunctionCall(call, env);
       return env;
     }
+    case invokeStmt(inv): {
+      println("Invocation not executed yet: <inv>");
+      return env;
+    }
+    case iteratorStmt(varName, inVars, outVars): {
+  // Stub: store as list of lists representing iterator signature
+  env += (varName: [inVars, outVars]);
+      println("  iterator <varName>(<inVars>) yielding (<outVars>)");
+      return env;
+    }
+    case rangeStmtWithVar(varName, fromP, toP): {
+      value fromV = principalValue(fromP, env);
+      value toV = principalValue(toP, env);
+      env += (varName: [fromV, toV]);
+      println("  range <varName> = from <fromV> to <toV>");
+      return env;
+    }
+    case rangeStmtBare(fromP, toP): {
+      value fromV = principalValue(fromP, env);
+      value toV = principalValue(toP, env);
+      println("  range from <fromV> to <toV>");
+      return env;
+    }
     
     default: {
       println("Statement not implemented: <s>");
       return env;
     }
   }
+}
+
+public value principalValue(Principal p, Env env) {
+  switch (p) {
+    case pTrue(): return true;
+    case pFalse(): return false;
+    case pChar(c): return c;
+    case pInt(i): return i;
+    case pFloat(r): return r;
+    case pId(name): return (name in env) ? env[name] : 0;
+  }
+  return 0;
 }
 
 public Env evalConditional(ConditionalStmt c, Env env) {
@@ -271,6 +306,11 @@ public value evalPrimary(Primary e, Env env) {
 
     case ctorExpr(ctor): {
       return evalConstructorCall(ctor, env);
+    }
+    case AST::invExpr(inv): {
+      // Invocation used in expression position: stub return 0 for now
+      println("Invocation in expression: <inv>");
+      return 0;
     }
   }
   return 0;

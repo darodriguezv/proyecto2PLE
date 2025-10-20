@@ -17,7 +17,12 @@ void main() {
     "test_loop.alu",
     "test_for_in.alu",
     "test_logic.alu",
-    "test_math.alu"
+    "test_math.alu",
+    "test_invocation.alu",
+    "test_iterator_range.alu",
+    "test_struct_expr.alu",
+    "test_data_constructor.alu",
+    "test_data_function.alu"
   ];
 
   for (file <- testFiles) {

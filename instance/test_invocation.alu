@@ -1,0 +1,6 @@
+function testInvocation() do
+  x = 1
+  y = 2
+  calc$(x, y)
+  obj.method(x, y)
+end testInvocation

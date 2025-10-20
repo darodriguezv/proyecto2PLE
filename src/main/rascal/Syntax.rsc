@@ -6,7 +6,17 @@ start syntax Program = program: Module+ modules ;
 syntax Module
 = dataDef: DataAbstraction
 | funcDef: FunctionDef
+| dataDecl: Data
 ; 
+// Spec-compliant Data declarations
+syntax Data =
+  dataWithAssign: Id assignName "=" "data" "with" Variables vars DataBody body "end" Id endName
+| dataNoAssign: "data" "with" Variables vars DataBody body "end" Id endName
+;
+
+syntax DataBody = consBody: Constructor | funcBody: FunctionDef;
+
+syntax Constructor = constructor: Id name "=" "struct" "(" Variables vars ")";
 
 // Abstracciones de datos
 syntax DataAbstraction =
@@ -32,10 +42,24 @@ syntax Statement
 | funcCallStmt: FunctionCall call 
 | conditionalStmt: ConditionalStmt ifs 
 | loopStmt: LoopStmt loop 
+// New statements per grammar
+| invokeStmt: Invocation inv
+| iteratorStmt: Id varName "=" "iterator" "(" {Id ","}* inVars ")" "yielding" "(" {Id ","}* outVars ")"
+| rangeStmtWithVar: Id varName "=" "from" Principal fromP "to" Principal toP
+| rangeStmtBare: "from" Principal fromP "to" Principal toP
 ; 
 
 // Llamadas a funciones
 syntax FunctionCall = funcCall: Id name "(" {Expression ","}* args ")" ; 
+
+// Variables list (for invocations/iterators)
+syntax Variables = variables: Id ("," Id)* ; // retained for other uses if needed
+
+// Invocation forms
+syntax Invocation
+= dollarInvoke: Id name "$" "(" {Id ","}* vars ")"
+| methodInvoke: Id recv "." Id method "(" {Id ","}* vars ")"
+; 
 
 // Constructores
 syntax DataConstruction
@@ -44,7 +68,7 @@ syntax DataConstruction
 syntax ConstructorCall =
 ctorCall: "sequence" "[" {Expression ","}* "]"
 | ctorCall: "tuple" "(" {Expression ","}* ")"
-| ctorCall: "struct" "(" {NamedArg ","}* args ")" ; 
+| ctorCall: "struct" "(" {Expression ","}* args ")" ; 
 
 syntax NamedArg = namedArg: Id name ":" Expression expr ; 
 
@@ -136,7 +160,18 @@ syntax Primary
 > literalExpr: Literal lit 
 > varExpr: Id name 
 | ctorExpr: ConstructorCall ctor 
+| invExpr: Invocation inv
 ; 
+
+// Principals (used in ranges, etc.)
+syntax Principal
+= pTrue: "true"
+| pFalse: "false"
+| pChar: Char
+| pInt: Integer
+| pFloat: Float
+| pId: Id
+;
 
 // Literales
 syntax Literal

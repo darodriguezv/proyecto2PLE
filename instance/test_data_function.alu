@@ -1,0 +1,5 @@
+id = data with x, y function f() do x = x end f end id
+
+function useDataFunc() do
+  # Parsing only; DataBody with Function
+end useDataFunc
