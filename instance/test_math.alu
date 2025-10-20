@@ -1,0 +1,7 @@
+function testMath() do
+  x = 2
+  y = 3
+  z = x ** y
+  mod = z % 5
+  check = mod >= 3
+end testMath

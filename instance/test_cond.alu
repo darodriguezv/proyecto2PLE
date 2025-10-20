@@ -1,0 +1,8 @@
+function testCond() do
+  x = 10
+  cond x do
+    x < 5 -> result = "low"
+    x < 15 -> result = "medium"
+    x >= 15 -> result = "high"
+  end
+end testCond

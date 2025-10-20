@@ -28,7 +28,6 @@ data Literal
   | stringLit(str strValue)
   ;
 
-// Expression hierarchy matching grammar
 data Expression = orExpr(OrExpr expr);
 
 data OrExpr

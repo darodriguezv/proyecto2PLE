@@ -23,10 +23,14 @@ public void evalModule(Module m, Env env) {
 
 public void evalFunction(FunctionDef f, Env env) {
   println("Executing function: <f.name>");
+  Env localEnv = env; 
   for (s <- f.body) {
-    env = evalStatement(s, env);
+    localEnv = evalStatement(s, localEnv);
   }
+  
   println("End of function: <f.name>");
+  
+
 }
 
 //Evaluación de Sentencias
@@ -36,14 +40,14 @@ public Env evalStatement(Statement s, Env env) {
     case assignStmt(varName, val): { // Asignación
       value v = evalExpression(val, env);
       env += (varName: v);
-      println("  <varName> = <v>");
+      println("  <varName> = <v>");
       return env;
     }
     
     case conditionalStmt(i): return evalConditional(i, env); // Condicional If
     case loopStmt(l): return evalLoop(l, env); // Bucles
     
-    case funcCallStmt(call): { // Llamada a función como sentencia
+    case funcCallStmt(call): { 
       evalFunctionCall(call, env);
       return env;
     }
@@ -58,12 +62,22 @@ public Env evalStatement(Statement s, Env env) {
 public Env evalConditional(ConditionalStmt c, Env env) {
   switch (c) {
     case ifStmt(i): return evalIf(i, env);
-    case condStmt(_): {
-      println("Cond statement not yet implemented.");
-      return env;
+    
+
+    case condStmt(cs): {
+
+      Env localEnv = env;
+      for (CondClause clause <- cs.clauses) {
+
+        if (toBool(evalExpression(clause.cond, env))) {
+          localEnv = evalBlock(clause.body, localEnv); 
+          return localEnv; 
+        }
+      }
+      return env; 
     }
   }
-  return env;
+  return env; 
 }
 
 public Env evalIf(IfStmt i, Env env) {
@@ -80,36 +94,43 @@ public Env evalIf(IfStmt i, Env env) {
   return evalBlock(i.elseBlock, env);
 }
 
+
 public Env evalLoop(LoopStmt l, Env env) {
   switch (l) {
     case forRange(v, fromExpr, toExpr, body): { // Bucle For Range
-      int startVal = toInt(evalExpression(fromExpr, env));
-      int endVal = toInt(evalExpression(toExpr, env));
+      int startVal = asInt(evalExpression(fromExpr, env));
+      int endVal = asInt(evalExpression(toExpr, env));
+ 
+      Env loopEnv = env; 
       
       for (i <- [startVal .. endVal]) {
-        env += (v: i);
-        env = evalBlock(body, env);
+        Env iterationEnv = loopEnv + (v: i); 
+        loopEnv = evalBlock(body, iterationEnv);
       }
-      return env;
+      return loopEnv; 
     }
     
-    case forIn(v, e, body): { // Bucle For In
+    case forIn(v, e, body): { 
       value seq = evalExpression(e, env);
+      
+      Env loopEnv = env; 
       
       if (list[value] lst := seq) {
         for (item <- lst) {
-          env += (v: item);
-          env = evalBlock(body, env);
+          Env iterationEnv = loopEnv + (v: item); 
+          loopEnv = evalBlock(body, iterationEnv);
         }
       }
-      return env;
+      return loopEnv;
     }
   }
   
   throw "Unknown loop type";
 }
 
+
 public Env evalBlock(list[Statement] body, Env env) {
+
   for (s <- body) {
     env = evalStatement(s, env);
   }
@@ -246,12 +267,24 @@ public value evalPrimary(Primary e, Env env) {
       return (name in env) ? env[name] : 0;
     case groupExpr(expr):
       return evalExpression(expr, env);
-    case ctorExpr(_): {
-      println("Constructor call not yet implemented");
-      return 0;
+    
+
+    case ctorExpr(ctor): {
+      return evalConstructorCall(ctor, env);
     }
   }
   return 0;
+}
+
+
+public value evalConstructorCall(ConstructorCall ctor, Env env) {
+    list[value] resultList = [];
+    
+    for (argExpr <- ctor.args) {
+        resultList += evalExpression(argExpr, env);
+    }
+    
+    return resultList;
 }
 
 public value evalFunctionCall(FunctionCall _call, Env _env) {
@@ -293,4 +326,9 @@ public int asInt(value v) {
   if (real r := v) return toInt(r);
   if (bool b := v) return b ? 1 : 0;
   return 0;
+}
+
+public int toInt(real r) {
+  return floor(r); 
+  
 }

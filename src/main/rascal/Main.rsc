@@ -6,11 +6,25 @@ import ParseTree;
 import AST;
 import Interpreter;
 import String;
-import ParseTree;
 
 void main() {
-  println("=== Running external file: test1.alu ===\n");
-  runFile(|project://proyecto2/instance/test1.alu|);
+  println("=== ALU Language Demo ===\n");
+
+  list[str] testFiles = [
+    "test1.alu",
+    "test_comparison.alu",
+    "test_cond.alu",
+    "test_loop.alu",
+    "test_for_in.alu",
+    "test_logic.alu",
+    "test_math.alu"
+  ];
+
+  for (file <- testFiles) {
+    println("=== Running file: <file> ===\n");
+    runFile(|project://proyecto2/instance/<file>|);
+    println("\n---\n");
+  }
 }
 
 void runExample(str title, str code) {
@@ -32,7 +46,6 @@ void runProgram(str code) {
     println("Parsing...");
     pt = parse(#start[Program], trim(code), allowAmbiguity=true);
     println("Resolving ambiguities...");
-    // Prefer literalExpr over varExpr for boolean literals
     pt = resolveAmb(pt);
     println("Imploding to AST...");
     AST::Program ast = implode(#AST::Program, pt.top);

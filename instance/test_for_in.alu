@@ -1,0 +1,7 @@
+function testForIn() do
+  total = 0
+  seq = sequence [1, 2, 3, 4]
+  for item in seq do
+    total = total + item
+  end
+end testForIn
