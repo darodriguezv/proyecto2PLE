@@ -18,6 +18,7 @@ public void evalModule(Module m, Env env) {
   switch (m) {
     case dataDef(_): println("Data definitions not executed yet.");
     case funcDef(f): evalFunction(f, env);
+    case dataDecl(_): println("Data declaration parsed (no runtime yet).");
   }
 }
 
@@ -284,7 +285,13 @@ public value evalUnaryExpr(UnaryExpr e, Env env) {
 
 public value evalPostfix(Postfix e, Env env) {
   switch (e) {
-    case postfixCall(_, _): {
+    case postfixCall(primary(varExpr(name)), args): {
+      // Treat tuple/struct as constructor calls when parsed as function style
+      if (name == "tuple" || name == "struct") {
+        list[value] out = [];
+        for (a <- args) out += evalExpression(a, env);
+        return out;
+      }
       println("Function call not yet implemented");
       return 0;
     }

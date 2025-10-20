@@ -4,8 +4,7 @@ module Syntax
 start syntax Program = program: Module+ modules ; 
 
 syntax Module
-= dataDef: DataAbstraction
-| funcDef: FunctionDef
+= funcDef: FunctionDef
 | dataDecl: Data
 ; 
 // Spec-compliant Data declarations
@@ -18,15 +17,7 @@ syntax DataBody = consBody: Constructor | funcBody: FunctionDef;
 
 syntax Constructor = constructor: Id name "=" "struct" "(" Variables vars ")";
 
-// Abstracciones de datos
-syntax DataAbstraction =
-dataAbstraction: "data" Id name "with" {Id ","}+ ids
-("rep" "struct" "(" {Id ","}* fields ")")?
-"end" Id endName ; 
-
-syntax IdList = Id+ ids ; 
-
-syntax FieldList = Id+ fields ; 
+// (legacy DataAbstraction removed)
 
 // Funciones
 syntax FunctionDef =
@@ -39,7 +30,6 @@ syntax ParameterList = parameterList: Id ("," Id)* ;
 // Sentencias
 syntax Statement
 = assignStmt: Id varName "=" Expression val 
-| funcCallStmt: FunctionCall call 
 | conditionalStmt: ConditionalStmt ifs 
 | loopStmt: LoopStmt loop 
 // New statements per grammar
@@ -48,9 +38,6 @@ syntax Statement
 | rangeStmtWithVar: Id varName "=" "from" Principal fromP "to" Principal toP
 | rangeStmtBare: "from" Principal fromP "to" Principal toP
 ; 
-
-// Llamadas a funciones
-syntax FunctionCall = funcCall: Id name "(" {Expression ","}* args ")" ; 
 
 // Variables list (for invocations/iterators)
 syntax Variables = variables: Id ("," Id)* ; // retained for other uses if needed
@@ -150,8 +137,7 @@ syntax UnaryExpr
 
 // Postfix 
 syntax Postfix
-= primary: Primary primaryExpr
-| left postfixCall: Postfix callee "(" {Expression ","}* args ")" 
+  = primary: Primary primaryExpr
 ; 
 
 // Expresiones primarias 
@@ -237,4 +223,4 @@ lexical WhitespaceOrComment
 | Comment
 ; 
 
-lexical Comment = "#" ![\n\r]* $; 
+lexical Comment = "#" ![\n\r]* ; 

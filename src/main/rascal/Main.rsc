@@ -6,6 +6,7 @@ import ParseTree;
 import AST;
 import Interpreter;
 import String;
+import Implode;
 
 void main() {
   println("=== ALU Language Demo ===\n");
@@ -53,7 +54,7 @@ void runProgram(str code) {
     println("Resolving ambiguities...");
     pt = resolveAmb(pt);
     println("Imploding to AST...");
-    AST::Program ast = implode(#AST::Program, pt.top);
+    AST::Program ast = implodeFromTree(pt.top);
     println("Executing...");
     evalProgram(ast);
     println("Done!");

@@ -16,8 +16,19 @@ public AST::Program implodeTree(Tree t) {
 
 // Optional finer control for Data mapping (bridge from parse tree to AST for new Data rules)
 public AST::Program implodeWithData(str code) {
-  Tree pt = parse(#start[Program], code);
+  Tree pt = parse(#start[Program], code, allowAmbiguity=true);
+  pt = resolveAmb(pt);
   return toAST(pt.top);
+}
+
+public Tree resolveAmb(Tree t) {
+  return bottom-up visit(t) {
+    case a:amb({Tree first, *Tree _}) => first
+  };
+}
+
+public AST::Program implodeFromTree(Tree t) {
+  return toAST(t);
 }
 
 AST::Program toAST(pt:(Program)`<Module+ modules>`) {
@@ -32,14 +43,12 @@ AST::Program toAST(pt:(Program)`<Module+ modules>`) {
 }
 
 AST::DataDecl toDataDecl(Data d) {
-  if ((Data)`<Id a> = data with <Variables vs> <DataBody b> end <Id e>` := d) {
-    list[str] vars = varsFrom(vs);
-    return AST::dataCtorWithAssign("<a>", vars, toCtorDef(b), "<e>");
-  }
-  else if ((Data)`data with <Variables vs> <DataBody b> end <Id e>` := d) {
-    list[str] vars = varsFrom(vs);
-    return AST::dataCtorNoAssign(vars, toCtorDef(b), "<e>");
-  }
+  // With assignment prefix
+  if ((Data)`<Id a> = data with <Variables vs> <DataBody b> end <Id e>` := d)
+    return AST::dataCtorWithAssign("<a>", varsFrom(vs), toCtorDef(b), "<e>");
+  // Bare data
+  else if ((Data)`data with <Variables vs> <DataBody b> end <Id e>` := d)
+    return AST::dataCtorNoAssign(varsFrom(vs), toCtorDef(b), "<e>");
   throw "Unknown Data";
 }
 
